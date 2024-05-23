@@ -1,113 +1,198 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+
+import { useSearchParams } from 'next/navigation';
+import * as prand from 'pure-rand';
+
+import Result from './Result';
+import Modal from './Modal';
+ 
+
+/*
+
+TODO:
+
+- Switch to Redux
+- Move styles to tailwind
+- Route and parametrize manifest URL
+- Show suggestions only after typing 3 characters
+- Display possible solutions at the end
+- Get rid of the ! and the as HTMLInputElement
+- Manifest JSON schema
+
+*/
+
+function shuffleArray(array: any[], rng: any) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = prand.unsafeUniformIntDistribution(0, i, rng);
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+
+type Cell = {catColName: string, catRowName: string, candidates: string[]};
+
+
+function generateTable(categories: Category[]): Table {
+
+  const rng = prand.xoroshiro128plus(1234);
+
+  // Select 6 categories at random
+  loop: while (true) {
+    shuffleArray(categories, rng);
+    const catsRow = categories.slice(0, 3);
+    const catsCol = categories.slice(3, 6);
+
+    // Can't call it a Table yet because it's empty!
+    const table: Cell[][] = [];
+
+    // Iterate through all rows and cols and check that each intersection has the minimum amount of candidates
+    for (const catRow of catsRow) {
+      const row: Cell[] = [];
+      for (const catCol of catsCol) {
+        const candidates = catRow.members.filter(item => catCol.members.includes(item));
+        if (candidates.length < 3) continue loop;
+        row.push({catColName: catCol.name, catRowName: catRow.name, candidates});
+      }
+      table.push(row);
+    }
+
+    return table as Table;
+  }
+}
+
+type Category = {
+  name: string,
+  members: string[],
+};
+
+type Manifest = {
+  version: string,
+  items: string[],
+  categories: Category[],
+};
+
+type Row = [Cell, Cell, Cell];
+
+type Table = [Row, Row, Row];
+
+type SelectedSquare = [0 | 1 | 2, 0 | 1 | 2] | null;
+
+type Attempts = [
+  [string | null, string | null, string | null],
+  [string | null, string | null, string | null],
+  [string | null, string | null, string | null]
+];
+
+enum ManifestStatus {
+  Loading, // No manifest processed yet
+  Valid, // A manifest has successfully been provided
+  Invalid, // A manifest has been provided, but it failed upon loading or it has an invalid format
+  Empty, // User has not filled the manifest parameter
+};
+
+export default function Page() {
+
+  const searchParams = useSearchParams();
+  const manifestURL = searchParams.get('manifest');
+
+  const [manifestStatus, setManifestStatus] = useState<ManifestStatus>(ManifestStatus.Loading);
+  const [table, setTable] = useState<Table | null>();
+  const [selectedSquare, setSelectedSquare] = useState<SelectedSquare>(null);
+  const [attempts, setAttempts] = useState<Attempts>([
+    [null, null, null],
+    [null, null, null],
+    [null, null, null]
+  ]);
+  const [availableItems, setAvailableItems] = useState<string[]>([]);
+  const [lives, setLives] = useState<number>(10);
+
+  useEffect(() => {
+
+    // No manifest provided
+    if (manifestURL === null) {
+      setManifestStatus(ManifestStatus.Empty);
+      return;
+    }
+
+    fetch(manifestURL, { method: 'GET' })
+      .then(response => response.json())
+      .then((data: Manifest) => {
+        setAvailableItems(data.items);
+
+        const table = generateTable(data.categories);
+
+        // For debugging:
+        // for (const row of table) {
+        //   for (const {catColName, catRowName, candidates} of row) {
+        //     console.log(catColName, catRowName, candidates);
+        //   }
+        // }
+        // console.log('---');
+
+        setTable(table);
+        setManifestStatus(ManifestStatus.Valid);
+
+      })
+      .catch(error => {
+        setManifestStatus(ManifestStatus.Invalid);
+      });
+  }, []);
+
+  if (manifestStatus === ManifestStatus.Empty) {
+    return "No manifest provided!";
+  } else if (manifestStatus === ManifestStatus.Invalid) {
+    return "Invalid manifest provided!";
+  }
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
-
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+    <>
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            {table && table[0].map(({catColName}, i) => <th key={i}>{catColName}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {table && table.map((row, i) => <tr key={i}>
+            <th scope="row">{row.length > 0 ? row[0].catRowName : ''}</th>
+            {
+              row.map((_, j) => <td key={j} style={selectedSquare ? (selectedSquare[0] === i && selectedSquare[1] === j ? {backgroundColor: 'Orange'} : {}) : {}}>{
+                attempts[i][j] || <div style={{height: '100%', margin: 0, cursor: lives > 0 ? 'pointer' : 'default'}} onClick={() => {lives > 0 && setSelectedSquare([i, j] as SelectedSquare)}}></div>
+              }</td>)
+            }
+          </tr>)}
+        </tbody>
+      </table>
+      { table &&
+        (finished({lives, attempts})
+        ? Result(<>
+            {attempts.map((row, i) => <span key={i}>
+              {row.map(attempt => attempt === null ? '❌' : '✅').join('')}
+              <br></br>
+            </span>)}
+            {guessesLeft(lives)}
+          </>)
+        : <div style={{marginLeft: 'auto', marginTop: '20px', textAlign: 'center', fontSize: 20}}>{guessesLeft(lives)}</div>)
+      }
+      {selectedSquare &&
+        createPortal(<Modal setLives={setLives} lives={lives} table={table} selectedSquare={selectedSquare} availableItems={availableItems} attempts={attempts} setAttempts={setAttempts} setAvailableItems={setAvailableItems} setSelectedSquare={setSelectedSquare}></Modal>, document.body)
+      }
+    </>
   );
 }
+
+function guessesLeft(lives: number): string {
+  return `${lives} ${lives === 1 ? 'guess' : 'guesses'} left`;
+}
+
+function finished({lives, attempts}: {lives: number, attempts: Attempts}) {
+  if (lives === 0) return true;
+  const isFilled = (elem: any) => elem !== null;
+  return attempts.map(row => row.every(isFilled)).every(elem => elem);
+}
+
+

@@ -1,0 +1,9 @@
+.parent {
+  position: relative;
+  margin: 0;
+  width: 100%;
+}
+
+.result {
+  margin-left: auto;
+}
