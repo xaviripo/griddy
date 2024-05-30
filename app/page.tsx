@@ -8,13 +8,22 @@ import * as prand from 'pure-rand';
 
 import Result from './Result';
 import Modal from './Modal';
- 
+
+import { useAppSelector, useAppDispatch } from '../lib/hooks';
+import {
+  GameState,
+  setAvailableItems,
+  setCandidateLists,
+  setColumnNames,
+  setRowNames,
+  CandidateLists,
+  PlayerResponses
+} from '../lib/gameSlice';
 
 /*
 
 TODO:
 
-- Switch to Redux
 - Move styles to tailwind
 - Route and parametrize manifest URL
 - Show suggestions only after typing 3 characters
@@ -31,38 +40,6 @@ function shuffleArray(array: any[], rng: any) {
   }
 }
 
-
-type Cell = {catColName: string, catRowName: string, candidates: string[]};
-
-
-function generateTable(categories: Category[]): Table {
-
-  const rng = prand.xoroshiro128plus(1234);
-
-  // Select 6 categories at random
-  loop: while (true) {
-    shuffleArray(categories, rng);
-    const catsRow = categories.slice(0, 3);
-    const catsCol = categories.slice(3, 6);
-
-    // Can't call it a Table yet because it's empty!
-    const table: Cell[][] = [];
-
-    // Iterate through all rows and cols and check that each intersection has the minimum amount of candidates
-    for (const catRow of catsRow) {
-      const row: Cell[] = [];
-      for (const catCol of catsCol) {
-        const candidates = catRow.members.filter(item => catCol.members.includes(item));
-        if (candidates.length < 3) continue loop;
-        row.push({catColName: catCol.name, catRowName: catRow.name, candidates});
-      }
-      table.push(row);
-    }
-
-    return table as Table;
-  }
-}
-
 type Category = {
   name: string,
   members: string[],
@@ -74,17 +51,7 @@ type Manifest = {
   categories: Category[],
 };
 
-type Row = [Cell, Cell, Cell];
-
-type Table = [Row, Row, Row];
-
-type SelectedSquare = [0 | 1 | 2, 0 | 1 | 2] | null;
-
-type Attempts = [
-  [string | null, string | null, string | null],
-  [string | null, string | null, string | null],
-  [string | null, string | null, string | null]
-];
+export type SelectedSquare = [0 | 1 | 2, 0 | 1 | 2] | null;
 
 enum ManifestStatus {
   Loading, // No manifest processed yet
@@ -95,19 +62,20 @@ enum ManifestStatus {
 
 export default function Page() {
 
+  // Get the ?manifest=... search param, or null if it's not set
   const searchParams = useSearchParams();
-  const manifestURL = searchParams.get('manifest');
+  const manifestURL: string | null = searchParams.get('manifest');
+
+  // TODO figure out how to get type inference on these
+  const columnNames = useAppSelector<GameState, [string | null, string | null, string | null]>(state => state.columnNames);
+  const rowNames = useAppSelector<GameState, [string | null, string | null, string | null]>(state => state.rowNames);
+  const playerResponses = useAppSelector<GameState, PlayerResponses>(state => state.playerResponses);
+  const guesses = useAppSelector<GameState, number>(state => state.guesses);
+  const over = useAppSelector<GameState, boolean>(state => state.over);
+  const dispatch = useAppDispatch();
 
   const [manifestStatus, setManifestStatus] = useState<ManifestStatus>(ManifestStatus.Loading);
-  const [table, setTable] = useState<Table | null>();
   const [selectedSquare, setSelectedSquare] = useState<SelectedSquare>(null);
-  const [attempts, setAttempts] = useState<Attempts>([
-    [null, null, null],
-    [null, null, null],
-    [null, null, null]
-  ]);
-  const [availableItems, setAvailableItems] = useState<string[]>([]);
-  const [lives, setLives] = useState<number>(10);
 
   useEffect(() => {
 
@@ -119,20 +87,49 @@ export default function Page() {
 
     fetch(manifestURL, { method: 'GET' })
       .then(response => response.json())
-      .then((data: Manifest) => {
-        setAvailableItems(data.items);
+      .then(({ items, categories }: Manifest) => {
+        dispatch(setAvailableItems(items));
 
-        const table = generateTable(data.categories);
+        const rng = prand.xoroshiro128plus(1234); // TODO seed this correctly
 
-        // For debugging:
-        // for (const row of table) {
-        //   for (const {catColName, catRowName, candidates} of row) {
-        //     console.log(catColName, catRowName, candidates);
-        //   }
-        // }
-        // console.log('---');
+        let candidateLists: CandidateLists;
+        let columnNames: [string | null, string | null, string | null];
+        let rowNames: [string | null, string | null, string | null];
+  
+        // TODO replace this while with a for to limit the max number of attempts to generate a table
+        loop: while (true) {
+      
+          // Select 6 categories at random
+          shuffleArray(categories, rng);
+          const catsRow = categories.slice(0, 3);
+          const catsCol = categories.slice(3, 6);
+          
+          // Can't call it a Table yet because it's empty!
+          candidateLists = [[[], [], []], [[], [], []], [[], [], []]];
+          columnNames = [null, null, null];
+          rowNames = [null, null, null];
+          
+          // Iterate through all rows and cols and check that each intersection has the minimum amount of candidates
+          for (const i of [0, 1, 2]) {
+            rowNames[i] = catsRow[i].name;
+            for (const j of [0, 1, 2]) {
+              columnNames[j] = catsCol[j].name;
 
-        setTable(table);
+              const candidates = catsRow[i].members.filter((item: string) => catsCol[j].members.includes(item));
+              if (candidates.length < 3) {
+                continue loop;
+              }
+              candidateLists[i][j] = candidates;
+
+            }
+          }
+
+          break;
+        }
+
+        dispatch(setCandidateLists(candidateLists));
+        dispatch(setColumnNames(columnNames));
+        dispatch(setRowNames(rowNames));
         setManifestStatus(ManifestStatus.Valid);
 
       })
@@ -142,9 +139,13 @@ export default function Page() {
   }, []);
 
   if (manifestStatus === ManifestStatus.Empty) {
-    return "No manifest provided!";
+    return 'No manifest provided!';
   } else if (manifestStatus === ManifestStatus.Invalid) {
-    return "Invalid manifest provided!";
+    return 'Invalid manifest provided!';
+  }
+
+  if ([columnNames, rowNames, playerResponses, guesses, over, dispatch].some((elem: any) => elem === undefined)) {
+    return;
   }
 
   return (
@@ -153,46 +154,38 @@ export default function Page() {
         <thead>
           <tr>
             <th></th>
-            {table && table[0].map(({catColName}, i) => <th key={i}>{catColName}</th>)}
+            {columnNames.map((columnName, i) => <th key={i}>{columnName}</th>)}
           </tr>
         </thead>
         <tbody>
-          {table && table.map((row, i) => <tr key={i}>
-            <th scope="row">{row.length > 0 ? row[0].catRowName : ''}</th>
+          {[0, 1, 2].map(i => <tr key={i}>
+            <th scope="row">{rowNames[i]}</th>
             {
-              row.map((_, j) => <td key={j} style={selectedSquare ? (selectedSquare[0] === i && selectedSquare[1] === j ? {backgroundColor: 'Orange'} : {}) : {}}>{
-                attempts[i][j] || <div style={{height: '100%', margin: 0, cursor: lives > 0 ? 'pointer' : 'default'}} onClick={() => {lives > 0 && setSelectedSquare([i, j] as SelectedSquare)}}></div>
+              [0, 1, 2].map(j => <td key={j} style={selectedSquare ? (selectedSquare[0] === i && selectedSquare[1] === j ? {backgroundColor: 'Orange'} : {}) : {}}>{
+                playerResponses[i][j] || <div style={{height: '100%', margin: 0, cursor: guesses > 0 ? 'pointer' : 'default'}} onClick={() => {guesses > 0 && setSelectedSquare([i, j] as SelectedSquare)}}></div>
               }</td>)
             }
           </tr>)}
         </tbody>
       </table>
-      { table &&
-        (finished({lives, attempts})
+      {
+        over
         ? Result(<>
-            {attempts.map((row, i) => <span key={i}>
-              {row.map(attempt => attempt === null ? '❌' : '✅').join('')}
+            {[0, 1, 2].map(i => <span key={i}>
+              {[0, 1, 2].map(j => playerResponses[i][j] === null ? '❌' : '✅').join('')}
               <br></br>
             </span>)}
-            {guessesLeft(lives)}
+            {guessesLeft(guesses)}
           </>)
-        : <div style={{marginLeft: 'auto', marginTop: '20px', textAlign: 'center', fontSize: 20}}>{guessesLeft(lives)}</div>)
+        : <div style={{marginLeft: 'auto', marginTop: '20px', textAlign: 'center', fontSize: 20}}>{guessesLeft(guesses)}</div>
       }
       {selectedSquare &&
-        createPortal(<Modal setLives={setLives} lives={lives} table={table} selectedSquare={selectedSquare} availableItems={availableItems} attempts={attempts} setAttempts={setAttempts} setAvailableItems={setAvailableItems} setSelectedSquare={setSelectedSquare}></Modal>, document.body)
+        createPortal(<Modal selectedSquare={selectedSquare} setSelectedSquare={setSelectedSquare}></Modal>, document.body)
       }
     </>
   );
 }
 
-function guessesLeft(lives: number): string {
-  return `${lives} ${lives === 1 ? 'guess' : 'guesses'} left`;
+function guessesLeft(guesses: number): string {
+  return `${guesses} ${guesses === 1 ? 'guess' : 'guesses'} left`;
 }
-
-function finished({lives, attempts}: {lives: number, attempts: Attempts}) {
-  if (lives === 0) return true;
-  const isFilled = (elem: any) => elem !== null;
-  return attempts.map(row => row.every(isFilled)).every(elem => elem);
-}
-
-
