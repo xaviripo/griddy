@@ -1,8 +1,14 @@
+import { ReactNode } from 'react';
+
 import './Result.css';
 
-export default function Result(copyText: React.JSX.Element) {
+type ResultProps = {
+  children: ReactNode;
+};
+
+export default function Result({ children }: ResultProps) {
   return <div className="parent"><div className="result">
-    <div id="copyText">{copyText}</div>
+    <div id="copyText">{children}</div>
     <button onClick={e => {
       e.preventDefault();
       navigator.clipboard.writeText(document.getElementById('copyText')!.innerText);

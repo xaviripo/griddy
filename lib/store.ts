@@ -1,9 +1,13 @@
 import { configureStore } from '@reduxjs/toolkit';
 import gameSliceReducer from './gameSlice';
+import manifestSliceReducer from './manifestSlice';
 
 export const makeStore = () => {
   return configureStore({
-    reducer: gameSliceReducer,
+    reducer: {
+      game: gameSliceReducer,
+      manifest: manifestSliceReducer,
+    },
   });
 };
 

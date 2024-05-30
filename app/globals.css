@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   --color-primary: #dddddd;
 }
@@ -24,14 +28,14 @@
   color: var(--color-primary);
 }
 
-body {
+/* body {
   background-color: #3c3a46 ;
-}
+} */
 
-table {
+/* table {
   margin: auto;
   border-collapse: collapse;
-}
+} */
 
 table td {
   border: 2px solid var(--color-primary);

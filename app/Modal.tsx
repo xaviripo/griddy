@@ -2,7 +2,7 @@ import { Dispatch, FormEvent, SetStateAction, useEffect } from 'react';
 
 import './Modal.css';
 import { useAppDispatch, useAppSelector } from '../lib/hooks';
-import { GameState, setResponse } from '../lib/gameSlice';
+import { setResponse } from '../lib/gameSlice';
 import { SelectedSquare } from './page';
 
 
@@ -10,7 +10,7 @@ import { SelectedSquare } from './page';
 export default function Modal({ selectedSquare, setSelectedSquare }: any) {
 
   // TODO figure out how to get type inference on these
-  const availableItems = useAppSelector<GameState, string[]>(state => state.availableItems);
+  const availableItems = useAppSelector(state => state.game.availableItems);
   const dispatch = useAppDispatch();
 
   const processForm = (e: FormEvent<HTMLFormElement>, { selectedSquare, setSelectedSquare }: { selectedSquare: SelectedSquare, setSelectedSquare: Dispatch<SetStateAction<SelectedSquare>> }) => {
