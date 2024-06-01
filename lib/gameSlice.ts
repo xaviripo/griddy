@@ -38,7 +38,7 @@ const initialState: GameState = {
   rowNames: [null, null, null],
   candidateLists: [[[], [], []], [[], [], []], [[], [], []]],
   playerResponses: [[null, null, null], [null, null, null], [null, null, null]],
-  guesses: 10,
+  guesses: 1,
   over: false,
 };
 

@@ -18,12 +18,11 @@ import ManifestManager from './ManifestManager';
 
 TODO:
 
-- Move styles to tailwind
 - Route and parametrize manifest URL
-- Show suggestions only after typing 3 characters
 - Display possible solutions at the end
 - Get rid of the ! and the as HTMLInputElement
 - Manifest JSON schema
+- Add pics for items
 
 */
 
@@ -105,20 +104,23 @@ export default function Page() {
   }, [content]);
 
   return <>
-    <div className="bg-slate-700 h-screen">
+    <div className="text-slate-200">
+      <h1 className="pt-10 pb-5 text-center text-3xl">Title</h1>
       <ManifestManager manifestStatus={status} manifestURL={manifestURL}>
         <Board selectedSquare={selectedSquare} setSelectedSquare={setSelectedSquare} />
-        {
-          over
-          ? <Result>
-              {[0, 1, 2].map(i => <span key={i}>
-                {[0, 1, 2].map(j => playerResponses[i][j] === null ? '❌' : '✅').join('')}
-                <br></br>
-              </span>)}
-              {guessesLeft(guesses)}
-            </Result>
-          : <div style={{marginLeft: 'auto', marginTop: '20px', textAlign: 'center', fontSize: 20}}>{guessesLeft(guesses)}</div>
-        }
+        <div className="m-10 text-center text-xl font-extralight">
+          {
+            over
+            ? <Result>
+                {[0, 1, 2].map(i => <span key={i}>
+                  {[0, 1, 2].map(j => playerResponses[i][j] === null ? '❌' : '✅').join('')}
+                  <br></br>
+                </span>)}
+                {guessesLeft(guesses)}
+              </Result>
+            : <div>{guessesLeft(guesses)}</div>
+          }
+        </div>
         {selectedSquare &&
           createPortal(<Modal selectedSquare={selectedSquare} setSelectedSquare={setSelectedSquare}></Modal>, document.body)
         }
