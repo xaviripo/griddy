@@ -9,7 +9,7 @@ export default function Result({ children }: ResultProps) {
 
   const clickHandler: MouseEventHandler<HTMLButtonElement> = e => {
     e.preventDefault();
-    navigator.clipboard.writeText(document.getElementById('copyText')!.innerText);
+    navigator.clipboard.writeText(document.getElementById('copyText')?.innerText ?? '');
   };
 
   return <div className="relative m-0 w-full">

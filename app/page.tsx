@@ -1,14 +1,12 @@
 'use client';
 
-import { ReactNode, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-
 import { useSearchParams } from 'next/navigation';
 import * as prand from 'pure-rand';
 
 import Result from './Result';
 import Modal from './Modal';
-
 import { useAppSelector, useAppDispatch } from '@/lib/hooks';
 import { setAvailableItems, setCandidateLists, setColumnNames, setRowNames, CandidateLists } from '@/lib/gameSlice';
 import Board from './Board';
@@ -20,7 +18,6 @@ TODO:
 
 - Route and parametrize manifest URL
 - Display possible solutions at the end
-- Get rid of the ! and the as HTMLInputElement
 - Manifest JSON schema
 - Add pics for items
 
@@ -50,6 +47,7 @@ export default function Page() {
   const { playerResponses, guesses, over } = useAppSelector(state => state.game);
 
   const [selectedSquare, setSelectedSquare] = useState<SelectedSquare>(null);
+  const [utcDate, setUtcDate] = useState<string>('');
 
   useEffect(() => {
 
@@ -59,7 +57,21 @@ export default function Page() {
 
     dispatch(setAvailableItems(content.items));
 
-    const rng = prand.xoroshiro128plus(1234); // TODO seed this correctly
+    // The seed is the UNIX timestamp of 00:00 UTC time for the current UTC day
+    const utcDate: string =
+      new Date().toLocaleDateString("en-GB", {timeZone: 'UTC'}) // "31/12/2024"
+      .split('/') // ["31", "12", "2024"]
+      .toReversed() // ["2024", "12", "31"]
+      .join('-'); // "2024-12-31"
+
+    // Save the date of the puzzle
+    setUtcDate(utcDate);
+
+    // Get the UNIX timestamp at 00:00 UTC
+    const seed = new Date(utcDate).valueOf();
+
+    // Obtain the RNG with the given seed
+    const rng = prand.xoroshiro128plus(seed);
 
     let candidateLists: CandidateLists;
     let columnNames: [string | null, string | null, string | null];
@@ -105,16 +117,19 @@ export default function Page() {
 
   return <>
     <div className="text-slate-200">
-      <h1 className="pt-10 pb-5 text-center text-3xl">Title</h1>
+      <h1 className="pt-10 pb-0 text-center text-3xl">{content?.name}</h1>
+      <h2 className="pt-0 pb-5 text-center text-xl">{utcDate}</h2>
       <ManifestManager manifestStatus={status} manifestURL={manifestURL}>
         <Board selectedSquare={selectedSquare} setSelectedSquare={setSelectedSquare} />
         <div className="m-10 text-center text-xl font-extralight">
           {
             over
             ? <Result>
+                {content?.name}<br/>
+                {utcDate}<br/>
                 {[0, 1, 2].map(i => <span key={i}>
                   {[0, 1, 2].map(j => playerResponses[i][j] === null ? '❌' : '✅').join('')}
-                  <br></br>
+                  <br/>
                 </span>)}
                 {guessesLeft(guesses)}
               </Result>

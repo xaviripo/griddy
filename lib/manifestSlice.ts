@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import type { GetThunkAPI, PayloadAction } from '@reduxjs/toolkit';
+import type { PayloadAction } from '@reduxjs/toolkit';
 
 type Category = {
   name: string,
@@ -8,6 +8,7 @@ type Category = {
 
 type Manifest = {
   version: string,
+  name: string,
   items: string[],
   categories: Category[],
 };
