@@ -1,4 +1,5 @@
 import { MouseEventHandler, ReactNode } from 'react';
+
 import Button from './Button';
 
 type ResultProps = {

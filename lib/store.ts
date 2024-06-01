@@ -1,4 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
+
 import gameSliceReducer from './gameSlice';
 import manifestSliceReducer from './manifestSlice';
 

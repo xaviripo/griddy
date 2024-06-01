@@ -1,4 +1,4 @@
-import { ChangeEventHandler, Dispatch, FormEvent, FormEventHandler, KeyboardEventHandler, MouseEventHandler, SetStateAction, useEffect, useState } from 'react';
+import { Dispatch, FormEvent, KeyboardEventHandler, MouseEventHandler, SetStateAction, useEffect, useState } from 'react';
 
 import { useAppDispatch, useAppSelector } from '../lib/hooks';
 import { setResponse } from '../lib/gameSlice';
@@ -15,7 +15,7 @@ export default function Modal({ selectedSquare, setSelectedSquare }: { selectedS
   const [input, setInput] = useState(''); // Declare a state variable...
 
   useEffect(() => {
-    document.getElementById('search')!.focus();
+    document.getElementById('search')?.focus();
   }, []);
 
   // Process the form
