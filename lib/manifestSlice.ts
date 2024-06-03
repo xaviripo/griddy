@@ -71,6 +71,12 @@ export const manifestSlice = createSlice({
     setURL: (state, { payload }: PayloadAction<string | null>) => {
       state.url = payload;
     },
+    removeManifest: (state) => {
+      state.url = null;
+      state.content = null;
+      state.hash = null;
+      state.status = ManifestStatus.Empty;
+    },
   },
   extraReducers: builder => {
     builder.addCase(fetchManifest.pending, (state, action) => {
@@ -91,5 +97,7 @@ export const manifestSlice = createSlice({
     
   }
 });
+
+export const { removeManifest } = manifestSlice.actions;
 
 export default manifestSlice.reducer;

@@ -2,7 +2,7 @@ import { ReactNode, useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { useAppDispatch } from "@/lib/hooks";
-import { ManifestStatus, fetchManifest } from "@/lib/manifestSlice";
+import { ManifestStatus, fetchManifest, removeManifest } from "@/lib/manifestSlice";
 import Button from "./Button";
 import TextInput from "./TextInput";
 
@@ -31,6 +31,7 @@ export default function ManifestManager({ children, manifestStatus, manifestURL,
         dispatch(fetchManifest(newManifestURL));
       }
     } else {
+      dispatch(removeManifest());
       setInput('');
     }
   }, [dispatch, searchParams, manifestURL, setManifestURL]);
