@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
 import * as prand from 'pure-rand';
@@ -192,7 +192,7 @@ export default function Page() {
 
   }, [dbPromise, game, utcDate, manifestId, manifestURL]);
 
-  return <Suspense>
+  return <>
     <div className="text-slate-200">
       <h1 className="pt-10 pb-0 text-center text-3xl">{content?.name}</h1>
       <h2 className="pt-0 pb-5 text-center text-xl">{utcDate}</h2>
@@ -218,5 +218,5 @@ export default function Page() {
         }
       </ManifestManager>
     </div>
-  </Suspense>;
+  </>;
 }
