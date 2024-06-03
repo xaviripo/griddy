@@ -59,11 +59,7 @@ const hash = function(str: string, seed = 0) {
 
 export const fetchManifest = createAsyncThunk<Manifest, string>('manifest/fetchManifest', async (url, { dispatch }) => {
   dispatch(manifestSlice.actions.setURL(url));
-  const response = await fetch(url, { method: 'GET', mode: 'cors',
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-    },
-  });
+  const response = await fetch(url, { method: 'GET' });
   const manifest: Manifest = await response.json();
   return manifest;
 });
