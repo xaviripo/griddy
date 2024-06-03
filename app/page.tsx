@@ -84,8 +84,6 @@ export default function Page() {
 
     (async () => {
 
-      console.log(content, hash, url);
-
       const db = await dbPromise.current!;
 
       // The seed is the UNIX timestamp of 00:00 UTC time for the current UTC day
