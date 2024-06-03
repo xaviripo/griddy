@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useSearchParams } from 'next/navigation';
 import * as prand from 'pure-rand';
 import { IDBPDatabase, openDB } from 'idb';
 import stringify from 'fast-json-stable-stringify';
@@ -42,14 +41,12 @@ export default function Page() {
 
   const dispatch = useAppDispatch();
 
-  // Get the ?manifest=... search param, or null if it's not set
-  const manifestURL: string | null = useSearchParams().get('manifest');
-
   const { status, content, hash, url } = useAppSelector(state => state.manifest);
   const game = useAppSelector(state => state.game);
 
   const [selectedSquare, setSelectedSquare] = useState<SelectedSquare>(null);
   const [utcDate, setUtcDate] = useState<string | null>(null);
+  const [manifestURL, setManifestURL] = useState<string | null>(null);
   const [manifestId, setManifestId] = useState<number | null>(null);
 
   const dbPromise = useRef<Promise<IDBPDatabase<unknown>> | null>(null);
@@ -79,6 +76,7 @@ export default function Page() {
 
     // Only run the whole thing if ALL of the manifest data is set
     if (content === null || hash === null || url === null) {
+      setUtcDate(null);
       return;
     }
 
@@ -198,27 +196,29 @@ export default function Page() {
     <div className="text-slate-200">
       <h1 className="pt-10 pb-0 text-center text-3xl">{content?.name}</h1>
       <h2 className="pt-0 pb-5 text-center text-xl">{utcDate}</h2>
-      <ManifestManager manifestStatus={status} manifestURL={manifestURL}>
-        <Board selectedSquare={selectedSquare} setSelectedSquare={setSelectedSquare} />
-        <div className="m-10 text-center text-xl font-extralight">
-          {
-            game.over
-            ? <Result>
-                {content?.name}<br/>
-                {utcDate}<br/>
-                {[0, 1, 2].map(i => <span key={i}>
-                  {[0, 1, 2].map(j => game.playerResponses[i][j] === null ? '❌' : '✅').join('')}
-                  <br/>
-                </span>)}
-                {guessesLeft(game.guesses)}
-              </Result>
-            : <div>{guessesLeft(game.guesses)}</div>
+      <Suspense>
+        <ManifestManager manifestStatus={status} manifestURL={manifestURL} setManifestURL={setManifestURL}>
+          <Board selectedSquare={selectedSquare} setSelectedSquare={setSelectedSquare} />
+          <div className="m-10 text-center text-xl font-extralight">
+            {
+              game.over
+              ? <Result>
+                  {content?.name}<br/>
+                  {utcDate}<br/>
+                  {[0, 1, 2].map(i => <span key={i}>
+                    {[0, 1, 2].map(j => game.playerResponses[i][j] === null ? '❌' : '✅').join('')}
+                    <br/>
+                  </span>)}
+                  {guessesLeft(game.guesses)}
+                </Result>
+              : <div>{guessesLeft(game.guesses)}</div>
+            }
+          </div>
+          {selectedSquare &&
+            createPortal(<Modal selectedSquare={selectedSquare} setSelectedSquare={setSelectedSquare}></Modal>, document.body)
           }
-        </div>
-        {selectedSquare &&
-          createPortal(<Modal selectedSquare={selectedSquare} setSelectedSquare={setSelectedSquare}></Modal>, document.body)
-        }
-      </ManifestManager>
+        </ManifestManager>
+      </Suspense>
     </div>
   </>;
 }

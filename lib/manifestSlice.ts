@@ -74,6 +74,8 @@ export const manifestSlice = createSlice({
   },
   extraReducers: builder => {
     builder.addCase(fetchManifest.pending, (state, action) => {
+      state.content = null;
+      state.hash = null;
       state.status = ManifestStatus.Loading;
     });
     builder.addCase(fetchManifest.fulfilled, (state, { payload }) => {
@@ -82,6 +84,8 @@ export const manifestSlice = createSlice({
       state.status = ManifestStatus.Valid;
     });
     builder.addCase(fetchManifest.rejected, (state, action) => {
+      state.content = null;
+      state.hash = null;
       state.status = ManifestStatus.Invalid;
     });
     

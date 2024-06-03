@@ -12,7 +12,8 @@ type ManifestStatusManagerProps = {
   manifestURL: string | null;
 };
 
-export default function ManifestManager({ children, manifestStatus, manifestURL }: ManifestStatusManagerProps) {
+export default function ManifestManager({ children, manifestStatus, manifestURL, setManifestURL }: any) {
+
   const dispatch = useAppDispatch();
 
   const router = useRouter();
@@ -22,12 +23,19 @@ export default function ManifestManager({ children, manifestStatus, manifestURL 
   const [input, setInput] = useState('');
 
   useEffect(() => {
-    const manifest = searchParams.get('manifest');
-    if (manifest !== null) {
-      setInput(manifest);
+    const newManifestURL = searchParams.get('manifest');
+    setManifestURL(newManifestURL);
+    if (newManifestURL !== null) {
+      setInput(newManifestURL);
+      if (newManifestURL !== manifestURL) {
+        dispatch(fetchManifest(newManifestURL));
+      }
+    } else {
+      setInput('');
     }
-  }, [setInput, searchParams]);
+  }, [searchParams]);
 
+  // useCallback to memoize
   const createQueryString = useCallback((name: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set(name, value);
@@ -52,8 +60,6 @@ export default function ManifestManager({ children, manifestStatus, manifestURL 
   const chooseResult = () => {
     if (manifestStatus === ManifestStatus.Empty) {
       if (manifestURL !== null) {
-        // Run this ONLY when ManifestStatus.Empty so that fetchManifest doesn't run again AFTER setting state.manifest.url
-        dispatch(fetchManifest(manifestURL));
         return resultLoading;
       }
       return resultEmpty;
