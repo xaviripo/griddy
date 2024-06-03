@@ -33,7 +33,7 @@ export default function ManifestManager({ children, manifestStatus, manifestURL,
     } else {
       setInput('');
     }
-  }, [searchParams]);
+  }, [dispatch, searchParams, manifestURL, setManifestURL]);
 
   // useCallback to memoize
   const createQueryString = useCallback((name: string, value: string) => {

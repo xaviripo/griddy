@@ -50,27 +50,30 @@ export default function Page() {
   const [manifestId, setManifestId] = useState<number | null>(null);
 
   const dbPromise = useRef<Promise<IDBPDatabase<unknown>> | null>(null);
-  // Initialize the ref INSIDE the if block so that openDB doesn't run every time the component is re-rendered
-  if (dbPromise.current === null) {
-    dbPromise.current = openDB('game', 1, {
-      upgrade: (db, oldVersion) => {
-        switch (oldVersion) {
-          case 0: // New database
-            const manifestsObjectStore = db.createObjectStore('manifests', { keyPath: 'id', autoIncrement: true });
-            manifestsObjectStore.createIndex('url', 'url', { unique: false });
-            manifestsObjectStore.createIndex('created', 'created', { unique: false });
-            manifestsObjectStore.createIndex('hash', 'hash', { unique: false });
-  
-            const boardsObjectStore = db.createObjectStore('boards', { keyPath: 'date' });
-            boardsObjectStore.createIndex('manifestURL', 'manifestURL', { unique: false });
-            boardsObjectStore.createIndex('manifestId', 'manifestId', { unique: false });
-            boardsObjectStore.createIndex('state', 'state', { unique: false });
-  
-            break;
-        }
-      },
-    });
-  }
+
+  const getDB = async () => {
+    if (dbPromise.current === null) {
+      dbPromise.current = openDB('game', 1, {
+        upgrade: (db, oldVersion) => {
+          switch (oldVersion) {
+            case 0: // New database
+              const manifestsObjectStore = db.createObjectStore('manifests', { keyPath: 'id', autoIncrement: true });
+              manifestsObjectStore.createIndex('url', 'url', { unique: false });
+              manifestsObjectStore.createIndex('created', 'created', { unique: false });
+              manifestsObjectStore.createIndex('hash', 'hash', { unique: false });
+    
+              const boardsObjectStore = db.createObjectStore('boards', { keyPath: 'date' });
+              boardsObjectStore.createIndex('manifestURL', 'manifestURL', { unique: false });
+              boardsObjectStore.createIndex('manifestId', 'manifestId', { unique: false });
+              boardsObjectStore.createIndex('state', 'state', { unique: false });
+    
+              break;
+          }
+        },
+      });
+    }
+    return await dbPromise.current;
+  };
 
   useEffect(() => {
 
@@ -82,7 +85,7 @@ export default function Page() {
 
     (async () => {
 
-      const db = await dbPromise.current!;
+      const db = await getDB();
 
       // The seed is the UNIX timestamp of 00:00 UTC time for the current UTC day
       const utcDate: string = new Date()
@@ -186,7 +189,7 @@ export default function Page() {
     }
 
     (async () => {
-      const db = await dbPromise.current!;
+      const db = await getDB();
       await db.put('boards', { manifestId, manifestURL, date: utcDate, state: game });
     })();
 
