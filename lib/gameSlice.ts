@@ -70,9 +70,18 @@ export const gameSlice = createSlice({
       state.guesses -= 1;
       state.over = state.guesses === 0 || state.playerResponses.flat().every(response => response !== null);
     },
+    setState: (state, { payload }: PayloadAction<GameState>) => {
+      state.availableItems = payload.availableItems;
+      state.columnNames = payload.columnNames;
+      state.rowNames = payload.rowNames;
+      state.candidateLists = payload.candidateLists;
+      state.playerResponses = payload.playerResponses;
+      state.guesses = payload.guesses;
+      state.over = payload.over;
+    },
   },
 });
 
-export const { setAvailableItems, setCandidateLists, setColumnNames, setRowNames, setResponse } = gameSlice.actions;
+export const { setAvailableItems, setCandidateLists, setColumnNames, setRowNames, setResponse, setState } = gameSlice.actions;
 
 export default gameSlice.reducer;

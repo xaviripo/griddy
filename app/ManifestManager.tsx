@@ -34,7 +34,7 @@ export default function ManifestManager({ children, manifestStatus, manifestURL 
     return params.toString();
   }, [searchParams]);
 
-  const manifestForm = <form onSubmit={e => {router.push(pathname + '?' + createQueryString('manifest', input))}}>
+  const manifestForm = <form onSubmit={e => {e.preventDefault(); router.push(pathname + '?' + createQueryString('manifest', input))}}>
     <TextInput size={50} value={input} onChange={e => {setInput(e.target.value)}} id="manifest"/>
     <Button type="submit">Play!</Button>
   </form>;
