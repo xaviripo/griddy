@@ -176,7 +176,7 @@ export default function Page() {
 
     })();
 
-  }, [content, hash, url]);
+  }, [dispatch, dbPromise, content, hash, url]);
 
   // Persistence hook: this hook listens to any changes to the (persistable) state, and saves it to the DB
   useEffect(() => {
@@ -190,7 +190,7 @@ export default function Page() {
       await db.put('boards', { manifestId, manifestURL, date: utcDate, state: game });
     })();
 
-  }, [game, utcDate, manifestId, manifestURL]);
+  }, [dbPromise, game, utcDate, manifestId, manifestURL]);
 
   return <Suspense>
     <div className="text-slate-200">
