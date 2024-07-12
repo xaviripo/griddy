@@ -6,7 +6,6 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Griddy',
   description: '', // TODO write metadata
-  icons: 'icon.webp',
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
