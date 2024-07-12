@@ -206,7 +206,7 @@ export default function Page() {
             {
               game.over
               ? <Result>
-                  {content?.name}<br/>
+                  #️⃣ {content?.name}<br/>
                   {utcDate}<br/>
                   {[0, 1, 2].map(i => <span key={i}>
                     {[0, 1, 2].map(j => game.playerResponses[i][j] === null ? '❌' : '✅').join('')}
