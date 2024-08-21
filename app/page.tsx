@@ -34,7 +34,8 @@ function shuffleArray(array: any[], rng: prand.RandomGenerator) {
 }
 
 function guessesLeft(guesses: number): string {
-  return `${guesses} ${guesses === 1 ? 'guess' : 'guesses'} left`;
+  const guessesEmoji = ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '6️⃣', '8️⃣', '9️⃣', '🔟'][guesses] ?? guesses;
+  return `${guessesEmoji} ${guesses === 1 ? 'guess' : 'guesses'} left`;
 }
 
 export default function Page() {
@@ -207,7 +208,7 @@ export default function Page() {
               game.over
               ? <Result>
                   #️⃣ {content?.name}<br/>
-                  {utcDate}<br/>
+                  📅 {utcDate}<br/>
                   {[0, 1, 2].map(i => <span key={i}>
                     {[0, 1, 2].map(j => game.playerResponses[i][j] === null ? '❌' : '✅').join('')}
                     <br/>
