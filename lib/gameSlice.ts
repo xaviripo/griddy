@@ -7,6 +7,8 @@ export type CandidateLists = [[string[], string[], string[]], [string[], string[
 
 export type PlayerResponses = [[string | null, string | null, string | null], [string | null, string | null, string | null], [string | null, string | null, string | null]];
 
+export type StarTitles = [string | null, string | null, string | null];
+
 export interface GameState {
   /**
    * List of available items that have not been attempted yet
@@ -23,6 +25,10 @@ export interface GameState {
    */
   playerResponses: PlayerResponses;
   /**
+   * Titles of each of the three star challenges
+   */
+  starTitles: StarTitles;
+  /**
    * Number of guesses left
    */
   guesses: number;
@@ -38,6 +44,7 @@ const initialState: GameState = {
   rowNames: [null, null, null],
   candidateLists: [[[], [], []], [[], [], []], [[], [], []]],
   playerResponses: [[null, null, null], [null, null, null], [null, null, null]],
+  starTitles: [null, null, null],
   guesses: 10,
   over: false,
 };
@@ -58,6 +65,9 @@ export const gameSlice = createSlice({
     setRowNames: (state, { payload }: PayloadAction<[string | null, string | null, string | null]>) => {
       state.rowNames = payload;
     },
+    setStarTitles: (state, { payload }: PayloadAction<StarTitles>) => {
+      state.starTitles = payload;
+    },
     setResponse: (state, { payload: [[i, j], response] }: PayloadAction<[Coordinate, string]>) => {
       if (!state.availableItems.includes(response) || state.playerResponses[i][j] !== null || state.guesses === 0) {
         return;
@@ -76,12 +86,13 @@ export const gameSlice = createSlice({
       state.rowNames = payload.rowNames;
       state.candidateLists = payload.candidateLists;
       state.playerResponses = payload.playerResponses;
+      state.starTitles = payload.starTitles;
       state.guesses = payload.guesses;
       state.over = payload.over;
     },
   },
 });
 
-export const { setAvailableItems, setCandidateLists, setColumnNames, setRowNames, setResponse, setState } = gameSlice.actions;
+export const { setAvailableItems, setCandidateLists, setColumnNames, setRowNames, setStarTitles, setResponse, setState } = gameSlice.actions;
 
 export default gameSlice.reducer;

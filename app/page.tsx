@@ -9,10 +9,10 @@ import stringify from 'fast-json-stable-stringify';
 import Result from './Result';
 import Modal from './Modal';
 import { useAppSelector, useAppDispatch } from '@/lib/hooks';
-import { setAvailableItems, setCandidateLists, setColumnNames, setRowNames, CandidateLists, setState } from '@/lib/gameSlice';
+import { setAvailableItems, setCandidateLists, setColumnNames, setRowNames, CandidateLists, setState, setStarTitles } from '@/lib/gameSlice';
 import Board from './Board';
 import ManifestManager from './ManifestManager';
-import { Manifest } from '@/lib/manifestSlice';
+import { Manifest, Star } from '@/lib/manifestSlice';
 
 /*
 
@@ -187,11 +187,12 @@ export default function Page() {
       }
 
       // After picking the rows and columns, we randomly pick the stars too:
-      let stars = [...contentObject.stars];
+      const stars = [...contentObject.stars];
       shuffleArray(stars, rng);
-      stars = stars.slice(0, 3);
+      const slicedStars = stars.slice(0, 3);
+      const starTitles = slicedStars.map(({title}) => title);
 
-      // dispatch(setStars())
+      dispatch(setStarTitles([starTitles[0], starTitles[1], starTitles[2]]));
       dispatch(setCandidateLists(candidateLists));
       dispatch(setColumnNames(columnNames));
       dispatch(setRowNames(rowNames));  
@@ -214,18 +215,21 @@ export default function Page() {
 
   }, [game, utcDate, manifestId, manifestURL]);
 
-  const starTitles = contentObject ? contentObject.stars.map(({title}) => title) : ['', '', ''];
   const starChecks = [false, false, false];
+  const tests = [];
 
-  if (contentObject) {
+  if (game.starTitles.every(title => title !== null)) {
+    for (const i of [0, 1, 2]) {
+      tests[i] = contentObject?.stars.find(({title}) => title === game.starTitles[i])?.test;
+    }
     if (game.playerResponses[0][0] !== null && game.playerResponses[1][1] !== null && game.playerResponses[2][2] !== null) {
-      starChecks[0] = contentObject.stars[0].test([game.playerResponses[0][0], game.playerResponses[1][1], game.playerResponses[2][2]]);
+      starChecks[0] = tests[0]!([game.playerResponses[0][0], game.playerResponses[1][1], game.playerResponses[2][2]]);
     }
     if (game.playerResponses[0][2] !== null && game.playerResponses[1][1] !== null && game.playerResponses[2][0] !== null) {
-      starChecks[1] = contentObject.stars[1].test([game.playerResponses[0][2], game.playerResponses[1][1], game.playerResponses[2][0]]);
+      starChecks[1] = tests[1]!([game.playerResponses[0][2], game.playerResponses[1][1], game.playerResponses[2][0]]);
     }
     if (game.playerResponses[0][1] !== null && game.playerResponses[1][0] !== null && game.playerResponses[1][2] !== null && game.playerResponses[2][1] !== null) {
-      starChecks[2] = contentObject.stars[2].test([game.playerResponses[0][1], game.playerResponses[1][0], game.playerResponses[1][2], game.playerResponses[2][1]]);
+      starChecks[2] = tests[2]!([game.playerResponses[0][1], game.playerResponses[1][0], game.playerResponses[1][2], game.playerResponses[2][1]]);
     }
   }
 
@@ -235,7 +239,7 @@ export default function Page() {
       <h2 className="pt-0 pb-5 text-center text-xl">{utcDate}</h2>
       <Suspense>
         <ManifestManager manifestStatus={status} manifestURL={manifestURL} setManifestURL={setManifestURL}>
-          <Board selectedSquare={selectedSquare} setSelectedSquare={setSelectedSquare} starTitles={starTitles} starChecks={starChecks} />
+          <Board selectedSquare={selectedSquare} setSelectedSquare={setSelectedSquare} starTitles={game.starTitles.map(title => title ?? '')} starChecks={starChecks} />
           <div className="m-10 text-center text-xl font-extralight">
             {
               game.over

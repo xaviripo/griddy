@@ -7,7 +7,7 @@ type Category = {
   members: string[],
 };
 
-type Star = {
+export type Star = {
   title: string,
   test: (candidates: string[]) => boolean,
 }
