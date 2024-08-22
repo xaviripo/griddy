@@ -7,11 +7,17 @@ type Category = {
   members: string[],
 };
 
-type Manifest = {
+type Star = {
+  title: string,
+  test: (candidates: string[]) => boolean,
+}
+
+export type Manifest = {
   version: string,
   name: string,
   items: string[],
   categories: Category[],
+  stars: Star[],
 };
 
 export enum ManifestStatus {
@@ -23,7 +29,7 @@ export enum ManifestStatus {
 
 export interface ManifestState {
   url: string | null,
-  content: Manifest | null,
+  content: string | null,
   hash: number | null,
   status: ManifestStatus,
 };
@@ -57,11 +63,13 @@ const hash = function(str: string, seed = 0) {
 };
 
 
-export const fetchManifest = createAsyncThunk<Manifest, string>('manifest/fetchManifest', async (url, { dispatch }) => {
+export const fetchManifest = createAsyncThunk<string, string>('manifest/fetchManifest', async (url, { dispatch }) => {
   dispatch(manifestSlice.actions.setURL(url));
   const response = await fetch(url, { method: 'GET' });
-  const manifest: Manifest = await response.json();
-  return manifest;
+  const code: string = await response.text();
+  // const objectURL = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
+  // const { default: manifest } = await import(/* webpackIgnore: true */ objectURL);
+  return code;
 });
 
 export const manifestSlice = createSlice({

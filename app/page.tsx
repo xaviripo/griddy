@@ -12,6 +12,7 @@ import { useAppSelector, useAppDispatch } from '@/lib/hooks';
 import { setAvailableItems, setCandidateLists, setColumnNames, setRowNames, CandidateLists, setState } from '@/lib/gameSlice';
 import Board from './Board';
 import ManifestManager from './ManifestManager';
+import { Manifest } from '@/lib/manifestSlice';
 
 /*
 
@@ -44,6 +45,7 @@ export default function Page() {
 
   const { status, content, hash, url } = useAppSelector(state => state.manifest);
   const game = useAppSelector(state => state.game);
+  const [contentObject, setContentObject] = useState<Manifest | null>(null);
 
   const [selectedSquare, setSelectedSquare] = useState<SelectedSquare>(null);
   const [utcDate, setUtcDate] = useState<string | null>(null);
@@ -84,6 +86,15 @@ export default function Page() {
       return;
     }
 
+    if (contentObject === null) {
+      (async function () {
+        const objectURL = URL.createObjectURL(new Blob([content], { type: 'text/javascript' }));
+        const { default: contentObject } = await import(/* webpackIgnore: true */ objectURL);
+        setContentObject(contentObject);
+      })();
+      return;
+    }
+
     (async () => {
 
       const db = await getDB();
@@ -97,6 +108,7 @@ export default function Page() {
 
       // Save the date of the puzzle
       setUtcDate(utcDate);
+
 
       // First check if a puzzle is started (via utcDate in boards objectStorage) and THEN if it isn't, check the manifest stuff
       const currentBoard = await db.get('boards', utcDate);
@@ -131,7 +143,7 @@ export default function Page() {
       }
 
       // Now, create a new entry for today's board and assign it the manifest id
-      dispatch(setAvailableItems(content.items));
+      dispatch(setAvailableItems(contentObject.items));
 
       // Get the UNIX timestamp at 00:00 UTC
       const seed = new Date(utcDate).valueOf();
@@ -146,7 +158,7 @@ export default function Page() {
       // TODO replace this while with a for to limit the max number of attempts to generate a table
       loop: while (true) {
   
-        const categories = [...content.categories];
+        const categories = [...contentObject.categories];
   
         // Select 6 categories at random
         shuffleArray(categories, rng);
@@ -173,14 +185,20 @@ export default function Page() {
         break;
   
       }
-  
+
+      // After picking the rows and columns, we randomly pick the stars too:
+      let stars = [...contentObject.stars];
+      shuffleArray(stars, rng);
+      stars = stars.slice(0, 3);
+
+      // dispatch(setStars())
       dispatch(setCandidateLists(candidateLists));
       dispatch(setColumnNames(columnNames));
       dispatch(setRowNames(rowNames));  
 
     })();
 
-  }, [dispatch, content, hash, url]);
+  }, [dispatch, content, hash, url, contentObject]);
 
   // Persistence hook: this hook listens to any changes to the (persistable) state, and saves it to the DB
   useEffect(() => {
@@ -196,23 +214,39 @@ export default function Page() {
 
   }, [game, utcDate, manifestId, manifestURL]);
 
+  const starTitles = contentObject ? contentObject.stars.map(({title}) => title) : ['', '', ''];
+  const starChecks = [false, false, false];
+
+  if (contentObject) {
+    if (game.playerResponses[0][0] !== null && game.playerResponses[1][1] !== null && game.playerResponses[2][2] !== null) {
+      starChecks[0] = contentObject.stars[0].test([game.playerResponses[0][0], game.playerResponses[1][1], game.playerResponses[2][2]]);
+    }
+    if (game.playerResponses[0][2] !== null && game.playerResponses[1][1] !== null && game.playerResponses[2][0] !== null) {
+      starChecks[1] = contentObject.stars[1].test([game.playerResponses[0][2], game.playerResponses[1][1], game.playerResponses[2][0]]);
+    }
+    if (game.playerResponses[0][1] !== null && game.playerResponses[1][0] !== null && game.playerResponses[1][2] !== null && game.playerResponses[2][1] !== null) {
+      starChecks[2] = contentObject.stars[2].test([game.playerResponses[0][1], game.playerResponses[1][0], game.playerResponses[1][2], game.playerResponses[2][1]]);
+    }
+  }
+
   return <>
     <div className="text-slate-200">
-      <h1 className="pt-10 pb-0 text-center text-3xl">{content?.name}</h1>
+      <h1 className="pt-10 pb-0 text-center text-3xl">{contentObject?.name}</h1>
       <h2 className="pt-0 pb-5 text-center text-xl">{utcDate}</h2>
       <Suspense>
         <ManifestManager manifestStatus={status} manifestURL={manifestURL} setManifestURL={setManifestURL}>
-          <Board selectedSquare={selectedSquare} setSelectedSquare={setSelectedSquare} />
+          <Board selectedSquare={selectedSquare} setSelectedSquare={setSelectedSquare} starTitles={starTitles} starChecks={starChecks} />
           <div className="m-10 text-center text-xl font-extralight">
             {
               game.over
               ? <Result>
-                  #️⃣ {content?.name}<br/>
+                  #️⃣ {contentObject?.name}<br/>
                   📅 {utcDate}<br/>
                   {[0, 1, 2].map(i => <span key={i}>
                     {[0, 1, 2].map(j => game.playerResponses[i][j] === null ? '❌' : '✅').join('')}
                     <br/>
                   </span>)}
+                  {starChecks.map(check => check ? '⭐' : '⚫')}<br/>
                   {guessesLeft(game.guesses)}
                 </Result>
               : <div>{guessesLeft(game.guesses)}</div>
