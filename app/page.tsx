@@ -150,25 +150,25 @@ export default function Page() {
   
       // Obtain the RNG with the given seed
       const rng = prand.xoroshiro128plus(seed);
-  
+
       let candidateLists: CandidateLists;
       let columnNames: [string | null, string | null, string | null];
       let rowNames: [string | null, string | null, string | null];
-  
+
       // TODO replace this while with a for to limit the max number of attempts to generate a table
       loop: while (true) {
   
         const categories = [...contentObject.categories];
-  
+
         // Select 6 categories at random
         shuffleArray(categories, rng);
         const catsRow = categories.slice(0, 3);
         const catsCol = categories.slice(3, 6);
-  
+
         candidateLists = [[[], [], []], [[], [], []], [[], [], []]];
         columnNames = [null, null, null];
         rowNames = [null, null, null];
-  
+
         // Iterate through all rows and cols and check that each intersection has the minimum amount of candidates
         for (const i of [0, 1, 2]) {
           rowNames[i] = catsRow[i].name;
@@ -181,9 +181,9 @@ export default function Page() {
             candidateLists[i][j] = candidates;
           }
         }
-  
+
         break;
-  
+
       }
 
       // After picking the rows and columns, we randomly pick the stars too:
